@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>基金实时估值查询</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            font-size: 28px;
+            margin-bottom: 24px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 24px;
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-box input:focus { border-color: #667eea; }
+        .search-box button {
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            white-space: nowrap;
+        }
+        .search-box button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102,126,234,0.5);
+        }
+        .search-box button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .hot-funds {
+            background: #fff;
+            padding: 16px 20px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .hot-funds h3 {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .hot-funds .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .hot-funds .tag {
+            padding: 6px 14px;
+            background: #f5f5ff;
+            border: 1px solid #e0e0ff;
+            border-radius: 20px;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .hot-funds .tag:hover {
+            background: #667eea;
+            color: #fff;
+            border-color: #667eea;
+        }
+        .fund-card {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+            animation: fadeIn 0.4s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fund-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .fund-name {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+        .fund-code {
+            font-size: 14px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .fund-type {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            background: #f0f0ff;
+            color: #667eea;
+        }
+        .estimate-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+        .estimate-item {
+            background: #fafafa;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+        }
+        .estimate-item .label {
+            font-size: 13px;
+            color: #999;
+            margin-bottom: 8px;
+        }
+        .estimate-item .value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+        .estimate-item .sub {
+            font-size: 12px;
+            color: #999;
+            margin-top: 4px;
+        }
+        .up { color: #e74c3c; }
+        .down { color: #27ae60; }
+        .flat { color: #999; }
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #fafafa;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .info-item .k { color: #999; }
+        .info-item .v { color: #333; font-weight: 500; }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+        }
+        .loading .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .error-msg {
+            text-align: center;
+            padding: 24px;
+            color: #e74c3c;
+            background: #fff5f5;
+            border-radius: 12px;
+            margin-bottom: 16px;
+        }
+        .refresh-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: rgba(255,255,255,0.7);
+        }
+        .refresh-bar label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .refresh-bar input[type="checkbox"] {
+            accent-color: #667eea;
+        }
+        .history-section {
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+        .history-section h4 {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 10px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .history-table th {
+            text-align: left;
+            padding: 8px;
+            background: #f8f8f8;
+            color: #888;
+            font-weight: 500;
+            border-radius: 4px;
+        }
+        .history-table td {
+            padding: 8px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .delete-btn:hover { color: #e74c3c; background: #fff0f0; }
+        .disclaimer {
+            text-align: center;
+            color: rgba(255,255,255,0.5);
+            font-size: 12px;
+            margin-top: 24px;
+            line-height: 1.6;
+        }
+        .watchlist-section {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+        }
+        .watchlist-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .watchlist-header h3 {
+            font-size: 16px;
+            color: #333;
+        }
+        .watchlist-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .watchlist-controls label {
+            font-size: 13px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .watchlist-controls select,
+        .watchlist-controls input[type="number"] {
+            padding: 4px 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 13px;
+            outline: none;
+            width: 80px;
+        }
+        .watchlist-controls select:focus,
+        .watchlist-controls input[type="number"]:focus {
+            border-color: #667eea;
+        }
+        .watchlist-refresh-btn {
+            padding: 5px 14px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .watchlist-refresh-btn:hover {
+            transform: translateY(-1px);
+        }
+        .watchlist-refresh-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .add-watchlist-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #eee;
+        }
+        .add-watchlist-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border: 2px solid #f1c40f;
+            background: #fffef5;
+            color: #d4a800;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .add-watchlist-btn:hover {
+            background: #f1c40f;
+            color: #fff;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(241,196,15,0.4);
+        }
+        .add-watchlist-btn.in-watchlist {
+            border-color: #e74c3c;
+            background: #fff5f5;
+            color: #e74c3c;
+        }
+        .add-watchlist-btn.in-watchlist:hover {
+            background: #e74c3c;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(231,76,60,0.4);
+        }
+        .watchlist-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .watchlist-table th {
+            text-align: left;
+            padding: 10px 8px;
+            background: #f8f8f8;
+            color: #888;
+            font-weight: 500;
+        }
+        .watchlist-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #555;
+        }
+        .watchlist-table tr:hover {
+            background: #fafaff;
+        }
+        .watchlist-table td.up { color: #e74c3c; }
+        .watchlist-table td.down { color: #27ae60; }
+        .history-table td.up { color: #e74c3c; }
+        .history-table td.down { color: #27ae60; }
+        .watchlist-empty {
+            text-align: center;
+            padding: 30px;
+            color: #ccc;
+            font-size: 14px;
+        }
+        .watchlist-remove-btn {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 16px;
+            padding: 2px 6px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .watchlist-remove-btn:hover {
+            color: #e74c3c;
+            background: #fff0f0;
+        }
+
+        .watchlist-countdown {
+            font-size: 12px;
+            color: #999;
+            margin-left: 6px;
+        }
+        @media (max-width: 600px) {
+            h1 { font-size: 22px; }
+            .estimate-item .value { font-size: 20px; }
+            .watchlist-controls { flex-direction: column; align-items: flex-start; }
+        }
+        .holdings-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .holdings-table th {
+            background: #f8f9fa;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 2px solid #eee;
+            white-space: nowrap;
+        }
+        .holdings-table td {
+            padding: 7px 6px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #444;
+        }
+        .holdings-table tr:hover {
+            background: #f8f9fe;
+        }
+        .holdings-table .pct-bar {
+            display: inline-block;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            vertical-align: middle;
+            margin-right: 6px;
+        }
+        .holdings-table td.up { color: #e74c3c; font-weight: 600; }
+        .holdings-table td.down { color: #27ae60; font-weight: 600; }
+        .holdings-table td.flat { color: #999; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📈 基金实时估值查询</h1>
+
+        <div class="search-box">
+            <input type="text" id="fundInput" placeholder="输入基金代码，如 110011、005827"
+                   onkeydown="if(event.key==='Enter') queryFund()">
+            <button id="queryBtn" onclick="queryFund()">查询</button>
+        </div>
+
+        <div class="hot-funds">
+            <h3>🔥 热门基金</h3>
+            <div class="tags">
+                <span class="tag" onclick="quickQuery('110011')">110011 易方达中小盘</span>
+                <span class="tag" onclick="quickQuery('005827')">005827 易方达蓝筹</span>
+                <span class="tag" onclick="quickQuery('161725')">161725 招商中证白酒</span>
+                <span class="tag" onclick="quickQuery('003834')">003834 华夏能源革新</span>
+                <span class="tag" onclick="quickQuery('260108')">260108 景顺长城新兴成长</span>
+                <span class="tag" onclick="quickQuery('519736')">519736 交银新成长</span>
+                <span class="tag" onclick="quickQuery('000961')">000961 天弘沪深300ETF联接</span>
+                <span class="tag" onclick="quickQuery('510300')">510300 沪深300ETF</span>
+            </div>
+        </div>
+
+        <div class="hot-funds" id="historySection" style="display:none;">
+            <h3>🕐 最近查询</h3>
+            <div class="tags" id="historyTags"></div>
+        </div>
+
+        <div class="refresh-bar">
+            <span id="lastUpdate"></span>
+        </div>
+
+        <div id="result"></div>
+
+        <!-- 自选列表 -->
+        <div class="watchlist-section" id="watchlistSection">
+            <div class="watchlist-header">
+                <h3>⭐ 自选列表</h3>
+            </div>
+            <div id="watchlistContent"></div>
+        </div>
+
+        <p class="disclaimer">
+            ⚠️ 估值数据来源于公开接口，仅供参考，不构成投资建议。<br>
+            实际净值以基金公司披露为准。数据可能存在延迟。<br>
+            © 2026 jiangzhou · <a href="mailto:819809300@qq.com" style="color:rgba(255,255,255,0.5);">819809300@qq.com</a>
+        </p>
+    </div>
+
+    <script>
+        let autoRefreshTimer = null;
+        let currentFundCode = '';
+        let queryHistory = JSON.parse(localStorage.getItem('fundQueryHistory') || '[]');
+
+        // 自选列表相关
+        let watchlist = JSON.parse(localStorage.getItem('fundWatchlist') || '[]');
+        let watchlistData = {}; // code -> latest data
+        let watchlistCountdownTimer = null;
+
+        function quickQuery(code) {
+            document.getElementById('fundInput').value = code;
+            queryFund();
+        }
+
+        function queryFund() {
+            const code = document.getElementById('fundInput').value.trim();
+            if (!code) {
+                showError('请输入基金代码');
+                return;
+            }
+            if (!/^\d{6}$/.test(code)) {
+                showError('请输入6位数字基金代码');
+                return;
+            }
+            currentFundCode = code;
+            fetchFundData(code);
+        }
+
+        function showError(msg) {
+            document.getElementById('result').innerHTML = `<div class="error-msg">❌ ${msg}</div>`;
+        }
+
+        function showLoading() {
+            document.getElementById('result').innerHTML = `
+                <div class="fund-card">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        正在查询基金数据...
+                    </div>
+                </div>`;
+        }
+
+        function fetchFundData(code) {
+            const btn = document.getElementById('queryBtn');
+            btn.disabled = true;
+            btn.textContent = '查询中...';
+            showLoading();
+
+            enqueueJsonp(code, function(data) {
+                btn.disabled = false;
+                btn.textContent = '查询';
+                if (data && data.fundcode) {
+                    renderFundData(data);
+                    saveHistory(data);
+                    updateLastTime();
+                } else {
+                    showError('未找到该基金，请检查基金代码是否正确');
+                }
+            });
+        }
+
+        function closeResult() {
+            document.getElementById('result').innerHTML = '';
+            currentFundCode = '';
+        }
+
+        function renderFundData(data) {
+            const gszzl = parseFloat(data.gszzl); // 估算涨幅
+            const gsz = parseFloat(data.gsz);     // 估算净值
+            const dwjz = parseFloat(data.dwjz);   // 单位净值（上一日）
+
+            const colorClass = gszzl > 0 ? 'up' : gszzl < 0 ? 'down' : 'flat';
+            const arrow = gszzl > 0 ? '▲' : gszzl < 0 ? '▼' : '—';
+            const sign = gszzl > 0 ? '+' : '';
+
+            // Calculate estimated change amount
+            const changeAmount = (gsz - dwjz).toFixed(4);
+            const changeSign = changeAmount >= 0 ? '+' : '';
+
+            const isInWatchlist = watchlist.some(w => w.code === data.fundcode);
+            const wlBtnClass = isInWatchlist ? 'add-watchlist-btn in-watchlist' : 'add-watchlist-btn';
+            const wlBtnText = isInWatchlist ? '★ 已在自选 (点击移除)' : '☆ 加入自选列表';
+
+            const html = `
+                <div class="fund-card">
+                    <div class="fund-header">
+                        <div>
+                            <div class="fund-name">${data.name || '未知基金'}</div>
+                            <div class="fund-code">基金代码：${data.fundcode}</div>
+                        </div>
+                        <div style="display:flex; align-items:center; gap:10px;">
+                            <span class="fund-type">${getFundType(data.fundcode)}</span>
+                            <button onclick="closeResult()" title="关闭" style="background:none;border:none;font-size:20px;color:#ccc;cursor:pointer;padding:2px 6px;border-radius:50%;transition:all 0.2s;" onmouseover="this.style.color='#e74c3c';this.style.background='#fff0f0'" onmouseout="this.style.color='#ccc';this.style.background='none'">✕</button>
+                        </div>
+                    </div>
+
+                    <div class="estimate-section">
+                        <div class="estimate-item">
+                            <div class="label">实时估值</div>
+                            <div class="value ${colorClass}">${gsz.toFixed(4)}</div>
+                            <div class="sub">估算净值</div>
+                        </div>
+                        <div class="estimate-item">
+                            <div class="label">估算涨幅</div>
+                            <div class="value ${colorClass}">${arrow} ${sign}${gszzl.toFixed(2)}%</div>
+                            <div class="sub">${changeSign}${changeAmount}</div>
+                        </div>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-item">
+                            <span class="k">净值日期</span>
+                            <span class="v">${data.jzrq || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="k">估值时间</span>
+                            <span class="v">${data.gztime || '--'}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="k">估值变动</span>
+                            <span class="v ${colorClass}">${changeSign}${changeAmount}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="k">数据来源</span>
+                            <span class="v">天天基金</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="k">真实净值</span>
+                            <span class="v" style="color:#333">${dwjz.toFixed(4)} <small style="color:#aaa">(📅${data.jzrq || '--'})</small></span>
+                        </div>
+                        <div class="info-item">
+                            <span class="k">真实涨幅</span>
+                            <span class="v flat" id="realChangeValue">加载中...</span>
+                        </div>
+                    </div>
+
+                    ${renderInvestCalc(gsz, gszzl, dwjz)}
+
+                    <div id="realNavInfo" style="margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
+                        <div style="text-align:center; color:#ccc; padding:10px; font-size:13px;">正在获取真实净值数据...</div>
+                    </div>
+
+                    <div id="holdingsInfo" style="margin-top:16px; padding-top:16px; border-top:1px solid #eee;">
+                        <div style="text-align:center; color:#ccc; padding:10px; font-size:13px;">正在获取持仓信息...</div>
+                    </div>
+
+                    <div class="add-watchlist-bar">
+                        <button class="${wlBtnClass}" onclick="toggleWatchlistFromCard('${data.fundcode}','${(data.name || '').replace(/'/g, "\\'")}')"
+                                id="watchlistToggleBtn">
+                            ${wlBtnText}
+                        </button>
+                        <span style="font-size:13px; color:#aaa;">${isInWatchlist ? '该基金已在你的自选列表中' : '添加后可在自选列表自动刷新估值'}</span>
+                    </div>
+                </div>
+            `;
+
+            document.getElementById('result').innerHTML = html;
+            renderHistoryTags();
+            fetchRealNav(data.fundcode, function() {
+                fetchFundHoldings(data.fundcode);
+            });
+        }
+
+        function renderInvestCalc(gsz, gszzl, dwjz) {
+            return `
+                <div class="history-section">
+                    <h4>💰 收益估算器</h4>
+                    <div style="display:flex; gap:10px; align-items:center; margin-top:8px; flex-wrap:wrap;">
+                        <span style="font-size:14px; color:#888;">持有份额：</span>
+                        <input type="number" id="shareInput" placeholder="输入份额"
+                               style="padding:8px 12px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; width:140px; outline:none;"
+                               oninput="calcProfit(${gsz}, ${gszzl}, ${dwjz})">
+                        <span style="font-size:14px; color:#888;">或持有金额：</span>
+                        <input type="number" id="amountInput" placeholder="输入金额(元)"
+                               style="padding:8px 12px; border:2px solid #e0e0e0; border-radius:8px; font-size:14px; width:140px; outline:none;"
+                               oninput="calcProfitByAmount(${gsz}, ${gszzl}, ${dwjz})">
+                    </div>
+                    <div id="profitResult" style="margin-top:12px; font-size:14px; color:#666;"></div>
+                </div>
+            `;
+        }
+
+        function calcProfit(gsz, gszzl, dwjz) {
+            const shares = parseFloat(document.getElementById('shareInput').value);
+            if (!shares || shares <= 0) {
+                document.getElementById('profitResult').innerHTML = '';
+                return;
+            }
+            const totalValue = (shares * gsz).toFixed(2);
+            const yesterdayValue = (shares * dwjz).toFixed(2);
+            const todayProfit = (totalValue - yesterdayValue).toFixed(2);
+            const sign = todayProfit >= 0 ? '+' : '';
+            const cls = todayProfit >= 0 ? 'up' : 'down';
+
+            document.getElementById('profitResult').innerHTML = `
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+                    <div class="info-item"><span class="k">估算总市值</span><span class="v">¥${formatNum(totalValue)}</span></div>
+                    <div class="info-item"><span class="k">昨日总市值</span><span class="v">¥${formatNum(yesterdayValue)}</span></div>
+                    <div class="info-item"><span class="k">今日估算收益</span><span class="v ${cls}">${sign}¥${formatNum(todayProfit)}</span></div>
+                </div>
+            `;
+        }
+
+        function calcProfitByAmount(gsz, gszzl, dwjz) {
+            const amount = parseFloat(document.getElementById('amountInput').value);
+            if (!amount || amount <= 0) {
+                document.getElementById('profitResult').innerHTML = '';
+                return;
+            }
+            const shares = amount / dwjz;
+            const totalValue = (shares * gsz).toFixed(2);
+            const todayProfit = (totalValue - amount).toFixed(2);
+            const sign = todayProfit >= 0 ? '+' : '';
+            const cls = todayProfit >= 0 ? 'up' : 'down';
+
+            document.getElementById('profitResult').innerHTML = `
+                <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:8px;">
+                    <div class="info-item"><span class="k">持有份额</span><span class="v">${shares.toFixed(2)}份</span></div>
+                    <div class="info-item"><span class="k">估算总市值</span><span class="v">¥${formatNum(totalValue)}</span></div>
+                    <div class="info-item"><span class="k">今日估算收益</span><span class="v ${cls}">${sign}¥${formatNum(todayProfit)}</span></div>
+                </div>
+            `;
+        }
+
+        function formatNum(n) {
+            return parseFloat(n).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function getFundType(code) {
+            const prefix = code.substring(0, 2);
+            const typeMap = {
+                '51': 'ETF基金', '15': 'ETF基金', '16': 'LOF基金',
+                '50': '封闭基金', '18': '封闭基金'
+            };
+            return typeMap[prefix] || '开放式基金';
+        }
+
+        function saveHistory(data) {
+            const exists = queryHistory.findIndex(h => h.code === data.fundcode);
+            if (exists !== -1) queryHistory.splice(exists, 1);
+            queryHistory.unshift({
+                code: data.fundcode,
+                name: data.name,
+                gsz: data.gsz,
+                gszzl: data.gszzl,
+                time: new Date().toLocaleString('zh-CN')
+            });
+            if (queryHistory.length > 10) queryHistory.pop();
+            localStorage.setItem('fundQueryHistory', JSON.stringify(queryHistory));
+        }
+
+        function renderHistoryTags() {
+            const section = document.getElementById('historySection');
+            const container = document.getElementById('historyTags');
+            if (queryHistory.length === 0) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = '';
+            container.innerHTML = queryHistory.map(function(h) {
+                const gszzl = parseFloat(h.gszzl);
+                const cls = gszzl > 0 ? 'up' : gszzl < 0 ? 'down' : 'flat';
+                const sign = gszzl > 0 ? '+' : '';
+                return `<span class="tag" onclick="quickQuery('${h.code}')">${h.code} ${h.name} <small class="${cls}" style="font-weight:600;">${sign}${gszzl.toFixed(2)}%</small></span>`;
+            }).join('');
+        }
+
+        function parseRealNavData(content) {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(content, 'text/html');
+            const rows = doc.querySelectorAll('tbody tr');
+            const records = [];
+            rows.forEach(function(row) {
+                const tds = row.querySelectorAll('td');
+                if (tds.length >= 4) {
+                    records.push({
+                        date: tds[0].textContent.trim(),
+                        nav: tds[1].textContent.trim(),
+                        accNav: tds[2].textContent.trim(),
+                        change: tds[3].textContent.trim()
+                    });
+                }
+            });
+            return records;
+        }
+
+        function fetchRealNav(code, callback) {
+            const script = document.createElement('script');
+            let handled = false;
+
+            function finish(records) {
+                if (callback) callback(records);
+            }
+
+            script.onload = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                try {
+                    if (window.apidata && window.apidata.content) {
+                        const records = parseRealNavData(window.apidata.content);
+                        window.apidata = undefined;
+
+                        // Update real change in estimate section
+                        const realChangeValue = document.getElementById('realChangeValue');
+                        if (realChangeValue && records.length > 0) {
+                            const latest = records[0];
+                            const changeVal = parseFloat(latest.change);
+                            const cls = changeVal > 0 ? 'up' : changeVal < 0 ? 'down' : 'flat';
+                            const changeSign = changeVal > 0 ? '+' : '';
+                            const changeText = isNaN(changeVal) ? latest.change : `${changeSign}${changeVal.toFixed(2)}%`;
+                            realChangeValue.className = `v ${cls}`;
+                            realChangeValue.innerHTML = `${changeText} <small style="color:#aaa;">(📅${latest.date})</small>`;
+                        } else if (realChangeValue) {
+                            realChangeValue.className = 'v flat';
+                            realChangeValue.textContent = '--';
+                        }
+
+                        // Render history table
+                        let navHtml = '';
+                        records.forEach(function(r) {
+                            const changeVal = parseFloat(r.change);
+                            const cls = changeVal > 0 ? 'up' : changeVal < 0 ? 'down' : 'flat';
+                            navHtml += `<tr>
+                                <td>${r.date}</td>
+                                <td style="font-weight:600;">${r.nav}</td>
+                                <td>${r.accNav}</td>
+                                <td class="${cls}">${r.change}</td>
+                            </tr>`;
+                        });
+                        const el = document.getElementById('realNavInfo');
+                        if (el && navHtml) {
+                            el.innerHTML = `
+                                <h4 style="font-size:14px; color:#888; margin-bottom:10px;">📊 真实净值（最近已公布）</h4>
+                                <div style="overflow-x:auto;">
+                                    <table class="history-table">
+                                        <thead><tr><th>日期</th><th>单位净值</th><th>累计净值</th><th>日涨幅</th></tr></thead>
+                                        <tbody>${navHtml}</tbody>
+                                    </table>
+                                </div>`;
+                        } else if (el) {
+                            el.innerHTML = '';
+                        }
+                        finish(records);
+                    } else {
+                        finish([]);
+                    }
+                } catch(e) {
+                    const el = document.getElementById('realNavInfo');
+                    if (el) el.innerHTML = '';
+                    finish([]);
+                }
+            };
+
+            script.onerror = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                const el = document.getElementById('realNavInfo');
+                if (el) el.innerHTML = '<div style="text-align:center; color:#ccc; padding:10px; font-size:13px;">真实净值数据暂时无法获取</div>';
+                const realChangeValue = document.getElementById('realChangeValue');
+                if (realChangeValue) {
+                    realChangeValue.className = 'v flat';
+                    realChangeValue.textContent = '--';
+                }
+                finish([]);
+            };
+
+            script.src = `https://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=5`;
+            document.head.appendChild(script);
+
+            setTimeout(function() {
+                if (!handled) {
+                    handled = true;
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    finish([]);
+                }
+            }, 8000);
+        }
+
+        // Fetch real nav for a watchlist item (no DOM update for card, just returns data)
+        function fetchRealNavForWatchlist(code, callback) {
+            const script = document.createElement('script');
+            let handled = false;
+
+            script.onload = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                try {
+                    if (window.apidata && window.apidata.content) {
+                        const records = parseRealNavData(window.apidata.content);
+                        window.apidata = undefined;
+                        callback(records);
+                    } else {
+                        callback([]);
+                    }
+                } catch(e) {
+                    callback([]);
+                }
+            };
+
+            script.onerror = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                callback([]);
+            };
+
+            script.src = `https://fund.eastmoney.com/f10/F10DataApi.aspx?type=lsjz&code=${code}&page=1&per=2`;
+            document.head.appendChild(script);
+
+            setTimeout(function() {
+                if (!handled) {
+                    handled = true;
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    callback([]);
+                }
+            }, 8000);
+        }
+
+        function fetchFundHoldings(code) {
+            const el = document.getElementById('holdingsInfo');
+            if (!el) return;
+
+            const script = document.createElement('script');
+            let handled = false;
+
+            script.onload = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                try {
+                    if (window.apidata && window.apidata.content) {
+                        const htmlStr = window.apidata.content;
+                        window.apidata = undefined;
+                        const parser = new DOMParser();
+                        const doc = parser.parseFromString(htmlStr, 'text/html');
+                        const tables = doc.querySelectorAll('table');
+                        if (tables.length === 0) {
+                            el.innerHTML = '';
+                            return;
+                        }
+                        const table = tables[0];
+                        const rows = table.querySelectorAll('tbody tr');
+                        if (rows.length === 0) {
+                            el.innerHTML = '';
+                            return;
+                        }
+
+                        let holdings = [];
+                        rows.forEach(function(row) {
+                            const tds = row.querySelectorAll('td');
+                            if (tds.length >= 9) {
+                                holdings.push({
+                                    index: (tds[0].textContent || '').trim(),
+                                    code: (tds[1].textContent || '').trim(),
+                                    name: (tds[2].textContent || '').trim(),
+                                    pct: (tds[6].textContent || '').trim(),
+                                    shares: (tds[7].textContent || '').trim(),
+                                    value: (tds[8].textContent || '').trim()
+                                });
+                            }
+                        });
+
+                        if (holdings.length === 0) {
+                            el.innerHTML = '';
+                            return;
+                        }
+
+                        const periodLabel = doc.querySelector('.right label') || doc.querySelector('label');
+                        let periodText = '';
+                        if (periodLabel) {
+                            periodText = (periodLabel.textContent || '').trim();
+                        }
+                        const labFont = doc.querySelector('font.px12');
+                        if (!periodText && labFont) {
+                            periodText = (labFont.textContent || '').trim();
+                        }
+
+                        let holdingsRows = holdings.map(function(h) {
+                            const pctVal = parseFloat(h.pct);
+                            const barWidth = isNaN(pctVal) ? 0 : Math.min(pctVal * 8, 100);
+                            return `<tr>
+                                <td>${h.index}</td>
+                                <td style="font-weight:600; color:#667eea;">${h.code}</td>
+                                <td>${h.name}</td>
+                                <td><span class="pct-bar" style="width:${barWidth}px;"></span>${h.pct}</td>
+                                <td>${h.shares}\u4e07\u80a1</td>
+                                <td>${h.value}\u4e07\u5143</td>
+                                <td class="flat" id="stk-chg-${h.code}">--</td>
+                            </tr>`;
+                        }).join('');
+
+                        el.innerHTML = `
+                            <h4 style="font-size:14px; color:#888; margin-bottom:10px;">
+                                \ud83c\udfe6 \u524d\u5341\u5927\u6301\u4ed3${periodText ? ' <small style="color:#bbb;">(' + periodText + ')</small>' : ''}
+                            </h4>
+                            <div style="overflow-x:auto;">
+                                <table class="holdings-table">
+                                    <thead><tr><th>#</th><th>\u80a1\u7968\u4ee3\u7801</th><th>\u80a1\u7968\u540d\u79f0</th><th>\u5360\u51c0\u503c\u6bd4</th><th>\u6301\u80a1\u6570</th><th>\u6301\u4ed3\u5e02\u503c</th><th>\u5b9e\u65f6\u6da8\u5e45</th></tr></thead>
+                                    <tbody>${holdingsRows}</tbody>
+                                </table>
+                            </div>`;
+
+                        fetchStockQuotes(holdings.map(function(h) { return h.code; }));
+                    } else {
+                        window.apidata = undefined;
+                        el.innerHTML = '';
+                    }
+                } catch(e) {
+                    el.innerHTML = '';
+                }
+            };
+
+            script.onerror = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                el.innerHTML = '<div style="text-align:center; color:#ccc; padding:10px; font-size:13px;">\u6301\u4ed3\u4fe1\u606f\u6682\u65f6\u65e0\u6cd5\u83b7\u53d6</div>';
+            };
+
+            script.src = `https://fundf10.eastmoney.com/FundArchivesDatas.aspx?type=jjcc&code=${code}&topline=10&year=&month=&rt=${Math.random()}`;
+            document.head.appendChild(script);
+
+            setTimeout(function() {
+                if (!handled) {
+                    handled = true;
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    el.innerHTML = '';
+                }
+            }, 10000);
+        }
+
+        function getSecId(stockCode) {
+            if (stockCode.length === 5) {
+                return '116.' + stockCode;
+            }
+            if (stockCode.startsWith('6')) {
+                return '1.' + stockCode;
+            }
+            return '0.' + stockCode;
+        }
+
+        function fetchStockQuotes(codes) {
+            if (!codes || codes.length === 0) return;
+            const secids = codes.map(getSecId).join(',');
+            const cbName = 'stockQuoteCb_' + Date.now();
+            const script = document.createElement('script');
+            let handled = false;
+
+            window[cbName] = function(resp) {
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                try {
+                    if (resp && resp.data && resp.data.diff) {
+                        resp.data.diff.forEach(function(item) {
+                            const code = item.f12;
+                            const change = item.f3;
+                            const price = item.f2;
+                            const el = document.getElementById('stk-chg-' + code);
+                            if (!el) return;
+                            if (change === '-' || change === undefined || change === null) {
+                                el.textContent = '停牌';
+                                el.className = 'flat';
+                                return;
+                            }
+                            const val = parseFloat(change);
+                            const cls = val > 0 ? 'up' : val < 0 ? 'down' : 'flat';
+                            const sign = val > 0 ? '+' : '';
+                            const priceText = (price !== '-' && price !== undefined) ? parseFloat(price).toFixed(2) : '';
+                            el.className = cls;
+                            el.innerHTML = `${sign}${val.toFixed(2)}%${priceText ? '<br><small style=\"color:#aaa;font-weight:normal;\">¥' + priceText + '</small>' : ''}`;
+                        });
+                    }
+                } catch(e) {}
+                delete window[cbName];
+            };
+
+            script.onerror = function() {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                delete window[cbName];
+            };
+
+            script.src = `https://push2.eastmoney.com/api/qt/ulist.np/get?cb=${cbName}&fltt=2&fields=f2,f3,f12,f14&secids=${secids}`;
+            document.head.appendChild(script);
+
+            setTimeout(function() {
+                if (!handled) {
+                    handled = true;
+                    if (script.parentNode) script.parentNode.removeChild(script);
+                    delete window[cbName];
+                }
+            }, 10000);
+        }
+
+        function updateLastTime() {
+            document.getElementById('lastUpdate').textContent =
+                '最后更新：' + new Date().toLocaleTimeString('zh-CN');
+        }
+
+        // ============ 自选列表功能 ============
+
+        function saveWatchlist() {
+            localStorage.setItem('fundWatchlist', JSON.stringify(watchlist));
+        }
+
+        function addToWatchlist(code, name) {
+            if (!code) return;
+            if (watchlist.some(w => w.code === code)) return;
+            watchlist.push({ code, name: name || '未知基金' });
+            saveWatchlist();
+            refreshAllWatchlist();
+        }
+
+        function removeFromWatchlist(code) {
+            watchlist = watchlist.filter(w => w.code !== code);
+            delete watchlistData[code];
+            saveWatchlist();
+            renderWatchlist();
+            // Refresh current card if it's showing this fund (to update star)
+            if (currentFundCode === code) {
+                fetchFundData(code);
+            }
+        }
+
+        function toggleWatchlistFromCard(code, name) {
+            const exists = watchlist.some(w => w.code === code);
+            if (exists) {
+                removeFromWatchlist(code);
+            } else {
+                watchlist.push({ code, name });
+                saveWatchlist();
+                refreshAllWatchlist();
+            }
+            // Re-render current card to update star
+            if (currentFundCode === code) {
+                fetchFundData(code);
+            }
+        }
+
+        let jsonpQueue = [];
+        let jsonpBusy = false;
+
+        function enqueueJsonp(code, callback) {
+            jsonpQueue.push({ code, callback });
+            processJsonpQueue();
+        }
+
+        function processJsonpQueue() {
+            if (jsonpBusy || jsonpQueue.length === 0) return;
+            jsonpBusy = true;
+            const { code, callback } = jsonpQueue.shift();
+
+            const script = document.createElement('script');
+            let handled = false;
+
+            function done(data) {
+                if (handled) return;
+                handled = true;
+                if (script.parentNode) script.parentNode.removeChild(script);
+                jsonpBusy = false;
+                callback(data);
+                processJsonpQueue();
+            }
+
+            window.jsonpgz = function(data) { done(data); };
+
+            script.onerror = function() { done(null); };
+
+            script.src = `https://fundgz.1234567.com.cn/js/${code}.js?rt=${Date.now()}`;
+            document.head.appendChild(script);
+
+            setTimeout(function() { done(null); }, 8000);
+        }
+
+        let watchlistRealNav = {}; // code -> { change, date }
+
+        function refreshAllWatchlist() {
+            if (watchlist.length === 0) {
+                renderWatchlist();
+                return;
+            }
+            let pending = watchlist.length;
+            watchlist.forEach(function(item) {
+                enqueueJsonp(item.code, function(data) {
+                    if (data && data.fundcode) {
+                        watchlistData[data.fundcode] = data;
+                        item.name = data.name || item.name;
+                    }
+                    pending--;
+                    if (pending <= 0) {
+                        saveWatchlist();
+                        renderWatchlist();
+                        refreshWatchlistRealNav();
+                    }
+                });
+            });
+        }
+
+        function refreshWatchlistRealNav() {
+            let idx = 0;
+            function next() {
+                if (idx >= watchlist.length) return;
+                const item = watchlist[idx];
+                idx++;
+                fetchRealNavForWatchlist(item.code, function(records) {
+                    if (records.length > 0) {
+                        const latest = records[0];
+                        watchlistRealNav[item.code] = { change: latest.change, date: latest.date, nav: latest.nav };
+                    }
+                    updateWatchlistRealNavRow(item.code);
+                    setTimeout(next, 200);
+                });
+            }
+            next();
+        }
+
+        function updateWatchlistRealNavRow(code) {
+            const cell = document.getElementById('wl-realchange-' + code);
+            if (!cell) return;
+            const info = watchlistRealNav[code];
+            if (info) {
+                const changeVal = parseFloat(info.change);
+                const cls = changeVal > 0 ? 'up' : changeVal < 0 ? 'down' : 'flat';
+                const sign = changeVal > 0 ? '+' : '';
+                const text = isNaN(changeVal) ? info.change : `${sign}${changeVal.toFixed(2)}%`;
+                const navText = info.nav ? '<b>' + info.nav + '</b> ' : '';
+                cell.className = cls;
+                cell.innerHTML = `${navText}${text}<br><small style="color:#aaa;font-weight:normal;">${info.date}</small>`;
+            } else {
+                cell.className = 'flat';
+                cell.textContent = '--';
+            }
+        }
+
+        function renderWatchlist() {
+            const container = document.getElementById('watchlistContent');
+            if (watchlist.length === 0) {
+                container.innerHTML = '<div class="watchlist-empty">暂无自选基金，查询基金后点击「加入自选列表」添加 ~</div>';
+                return;
+            }
+
+            let rows = watchlist.map(function(item) {
+                const data = watchlistData[item.code];
+                const rnInfo = watchlistRealNav[item.code];
+                let realChangeHtml = '<td id="wl-realchange-' + item.code + '" class="flat">--</td>';
+                if (rnInfo) {
+                    const rcVal = parseFloat(rnInfo.change);
+                    const rcCls = rcVal > 0 ? 'up' : rcVal < 0 ? 'down' : 'flat';
+                    const rcSign = rcVal > 0 ? '+' : '';
+                    const rcText = isNaN(rcVal) ? rnInfo.change : `${rcSign}${rcVal.toFixed(2)}%`;
+                    const rnNav = rnInfo.nav || '';
+                    realChangeHtml = `<td id="wl-realchange-${item.code}" class="${rcCls}">${rnNav ? '<b>' + rnNav + '</b> ' : ''}${rcText}<br><small style="color:#aaa;font-weight:normal;">${rnInfo.date}</small></td>`;
+                }
+
+                if (!data) {
+                    return `<tr>
+                        <td><a href="javascript:quickQuery('${item.code}')" style="color:#667eea;text-decoration:none;">${item.code}</a></td>
+                        <td>${item.name}</td>
+                        <td>--</td><td>--</td>${realChangeHtml}<td>--</td>
+                        <td><button class="watchlist-remove-btn" onclick="removeFromWatchlist('${item.code}')">×</button></td>
+                    </tr>`;
+                }
+                const gszzl = parseFloat(data.gszzl);
+                const cls = gszzl > 0 ? 'up' : gszzl < 0 ? 'down' : 'flat';
+                const sign = gszzl > 0 ? '+' : '';
+                const gsz = parseFloat(data.gsz).toFixed(4);
+                return `<tr>
+                    <td><a href="javascript:quickQuery('${item.code}')" style="color:#667eea;text-decoration:none;">${item.code}</a></td>
+                    <td>${data.name || item.name}</td>
+                    <td>${gsz}</td>
+                    <td class="${cls}">${sign}${gszzl.toFixed(2)}%</td>
+                    ${realChangeHtml}
+                    <td style="font-size:12px;color:#999;">${data.gztime || '--'}</td>
+                    <td><button class="watchlist-remove-btn" onclick="removeFromWatchlist('${item.code}')">×</button></td>
+                </tr>`;
+            }).join('');
+
+            container.innerHTML = `
+                <div style="overflow-x:auto;">
+                    <table class="watchlist-table">
+                        <thead>
+                            <tr><th>代码</th><th>名称</th><th>估值</th><th>估算涨幅</th><th>真实净值/涨幅</th><th>估值时间</th><th></th></tr>
+                        </thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                </div>
+            `;
+        }
+
+        function onWatchlistIntervalChange() {}
+
+        function toggleWatchlistRefresh() {}
+
+        function startWatchlistRefresh() {
+            stopWatchlistRefresh();
+            refreshAllWatchlist();
+            watchlistCountdownTimer = setInterval(function() {
+                refreshAllWatchlist();
+            }, 30000);
+        }
+
+        function stopWatchlistRefresh() {
+            if (watchlistCountdownTimer) {
+                clearInterval(watchlistCountdownTimer);
+                watchlistCountdownTimer = null;
+            }
+        }
+
+        // Initialize watchlist on load
+        (function initWatchlist() {
+            renderWatchlist();
+            if (watchlist.length > 0) {
+                startWatchlistRefresh();
+            }
+        })();
+
+        // Show history tags on load
+        renderHistoryTags();
+    </script>
+</body>
+</html>
