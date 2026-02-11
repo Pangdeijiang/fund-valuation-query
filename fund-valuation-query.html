@@ -455,7 +455,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>📈 基金实时估值查询</h1>
+        <h1>📈 DeusJ基金实时估值查询</h1>
 
         <div class="search-box">
             <input type="text" id="fundInput" placeholder="输入基金代码，如 110011、005827"
@@ -1234,8 +1234,14 @@
                 const sign = changeVal > 0 ? '+' : '';
                 const text = isNaN(changeVal) ? info.change : `${sign}${changeVal.toFixed(2)}%`;
                 const navText = info.nav ? '<b>' + info.nav + '</b> ' : '';
+                const today = new Date();
+                const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
+                const isToday = info.date === todayStr;
+                const statusTag = isToday
+                    ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;">✔已更新</span>'
+                    : '';
                 cell.className = cls;
-                cell.innerHTML = `${navText}${text}<br><small style="color:#aaa;font-weight:normal;">${info.date}</small>`;
+                cell.innerHTML = `${navText}${text}<br><small style="color:#e6a817;font-weight:600;">${info.date}</small> ${statusTag}`;
             } else {
                 cell.className = 'flat';
                 cell.textContent = '--';
@@ -1259,7 +1265,13 @@
                     const rcSign = rcVal > 0 ? '+' : '';
                     const rcText = isNaN(rcVal) ? rnInfo.change : `${rcSign}${rcVal.toFixed(2)}%`;
                     const rnNav = rnInfo.nav || '';
-                    realChangeHtml = `<td id="wl-realchange-${item.code}" class="${rcCls}">${rnNav ? '<b>' + rnNav + '</b> ' : ''}${rcText}<br><small style="color:#aaa;font-weight:normal;">${rnInfo.date}</small></td>`;
+                    const rnToday = new Date();
+                    const rnTodayStr = rnToday.getFullYear() + '-' + String(rnToday.getMonth()+1).padStart(2,'0') + '-' + String(rnToday.getDate()).padStart(2,'0');
+                    const rnIsToday = rnInfo.date === rnTodayStr;
+                    const rnStatusTag = rnIsToday
+                        ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;">✔已更新</span>'
+                        : '';
+                    realChangeHtml = `<td id="wl-realchange-${item.code}" class="${rcCls}">${rnNav ? '<b>' + rnNav + '</b> ' : ''}${rcText}<br><small style="color:#e6a817;font-weight:600;">${rnInfo.date}</small> ${rnStatusTag}</td>`;
                 }
 
                 if (!data) {
