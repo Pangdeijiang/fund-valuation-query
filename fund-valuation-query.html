@@ -702,11 +702,7 @@
                         </div>
                     </div>
 
-                    <div class="info-grid">
-                        <div class="info-item">
-                            <span class="k">净值日期</span>
-                            <span class="v">${data.jzrq || '--'}</span>
-                        </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
                         <div class="info-item">
                             <span class="k">估值时间</span>
                             <span class="v">${data.gztime || '--'}</span>
@@ -715,13 +711,15 @@
                             <span class="k">估值变动</span>
                             <span class="v ${colorClass}">${changeSign}${changeAmount}</span>
                         </div>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px;">
                         <div class="info-item">
                             <span class="k">数据来源</span>
                             <span class="v">天天基金</span>
                         </div>
                         <div class="info-item">
                             <span class="k">真实净值</span>
-                            <span class="v" style="color:#333">${dwjz.toFixed(4)} <small style="color:#aaa">(📅${data.jzrq || '--'})</small></span>
+                            <span class="v" style="color:#333" id="realNavValue">${dwjz.toFixed(4)} <small style="color:#aaa">(📅${data.jzrq || '--'})</small></span>
                         </div>
                         <div class="info-item">
                             <span class="k">真实涨幅</span>
@@ -923,6 +921,10 @@
                             const changeText = isNaN(changeVal) ? latest.change : `${changeSign}${changeVal.toFixed(2)}%`;
                             realChangeValue.className = `v ${cls}`;
                             realChangeValue.innerHTML = `${changeText} <small style="color:#aaa;">(📅${latest.date})</small>`;
+                            const realNavValue = document.getElementById('realNavValue');
+                            if (realNavValue && latest.nav) {
+                                realNavValue.innerHTML = `${parseFloat(latest.nav).toFixed(4)} <small style="color:#aaa">(📅${latest.date})</small>`;
+                            }
                         } else if (realChangeValue) {
                             realChangeValue.className = 'v flat';
                             realChangeValue.textContent = '--';
@@ -1473,7 +1475,7 @@
                 const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
                 const isToday = info.date === todayStr;
                 const statusTag = isToday
-                    ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">✔已更新</span>'
+                    ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">已更新</span>'
                     : '';
                 cell.innerHTML = `<div><span style="font-weight:600;">${info.nav || '--'}</span> <span class="${cls}">${text}</span></div><div style="white-space:nowrap;"><small style="color:#e6a817;font-weight:600;font-size:11px;">${info.date}</small>${statusTag}</div>`;
             } else {
@@ -1503,7 +1505,7 @@
                     const rnTodayStr = rnToday.getFullYear() + '-' + String(rnToday.getMonth()+1).padStart(2,'0') + '-' + String(rnToday.getDate()).padStart(2,'0');
                     const rnIsToday = rnInfo.date === rnTodayStr;
                     const rnStatusTag = rnIsToday
-                        ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">✔已更新</span>'
+                        ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">已更新</span>'
                         : '';
                     realHtml = `<td id="wl-real-${item.code}"><div><span style="font-weight:600;">${rnNav || '--'}</span> <span class="${rcCls}">${rcText}</span></div><div style="white-space:nowrap;"><small style="color:#e6a817;font-weight:600;font-size:11px;">${rnInfo.date}</small>${rnStatusTag}</div></td>`;
                 }
@@ -1533,7 +1535,7 @@
                     ${sectorHtml}
                     <td><span style="font-weight:600;">${gsz}</span> <span class="${cls}">${sign}${gszzl.toFixed(2)}%</span></td>
                     ${realHtml}
-                    <td style="font-size:12px;color:#999;">${data.gztime || '--'}</td>
+                    <td style="font-size:11px;color:#999;white-space:nowrap;">${data.gztime || '--'}</td>
                     <td><button class="watchlist-remove-btn" onclick="removeFromWatchlist('${item.code}')">×</button></td>
                 </tr>`;
             }).join('');
