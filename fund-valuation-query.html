@@ -1473,9 +1473,9 @@
                 const todayStr = today.getFullYear() + '-' + String(today.getMonth()+1).padStart(2,'0') + '-' + String(today.getDate()).padStart(2,'0');
                 const isToday = info.date === todayStr;
                 const statusTag = isToday
-                    ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;">✔已更新</span>'
+                    ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">✔已更新</span>'
                     : '';
-                cell.innerHTML = `<div><span style="font-weight:600;">${info.nav || '--'}</span> <span class="${cls}">${text}</span></div><div><small style="color:#e6a817;font-weight:600;">${info.date}</small> ${statusTag}</div>`;
+                cell.innerHTML = `<div><span style="font-weight:600;">${info.nav || '--'}</span> <span class="${cls}">${text}</span></div><div style="white-space:nowrap;"><small style="color:#e6a817;font-weight:600;font-size:11px;">${info.date}</small>${statusTag}</div>`;
             } else {
                 cell.className = 'flat';
                 cell.textContent = '--';
@@ -1503,9 +1503,9 @@
                     const rnTodayStr = rnToday.getFullYear() + '-' + String(rnToday.getMonth()+1).padStart(2,'0') + '-' + String(rnToday.getDate()).padStart(2,'0');
                     const rnIsToday = rnInfo.date === rnTodayStr;
                     const rnStatusTag = rnIsToday
-                        ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;">✔已更新</span>'
+                        ? '<span style="color:#27ae60;font-weight:600;margin-left:4px;font-size:11px;">✔已更新</span>'
                         : '';
-                    realHtml = `<td id="wl-real-${item.code}"><div><span style="font-weight:600;">${rnNav || '--'}</span> <span class="${rcCls}">${rcText}</span></div><div><small style="color:#e6a817;font-weight:600;">${rnInfo.date}</small> ${rnStatusTag}</div></td>`;
+                    realHtml = `<td id="wl-real-${item.code}"><div><span style="font-weight:600;">${rnNav || '--'}</span> <span class="${rcCls}">${rcText}</span></div><div style="white-space:nowrap;"><small style="color:#e6a817;font-weight:600;font-size:11px;">${rnInfo.date}</small>${rnStatusTag}</div></td>`;
                 }
 
                 const sectorHtml = (function() {
